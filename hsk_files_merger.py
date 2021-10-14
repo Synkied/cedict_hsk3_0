@@ -8,7 +8,12 @@ import os
 
 import pandas
 
-MERGE_FILEPATH = os.path.join(os.getcwd(), 'revised/merged_hanzi_data.csv')
+SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
+
+MERGE_FILEPATH = os.path.join(
+    SCRIPT_PATH,
+    'revised/merged_hanzi_data.csv',
+)
 
 
 HEADERS = [
@@ -20,9 +25,11 @@ HSK3_0_FILENAME = 'hsk_words_list.csv'
 
 
 def merge_to_csv(csv_cedict_file, csv_cfdict_file, chinese_charfreq_file,
-                 hsk2_0_wordlist_file, hsk3_0_wordlist_file):
+                 hsk2_0_wordlist_file, hsk3_0_wordlist_file,
+                 radical_meaning):
     cedict_df = pandas.read_csv(csv_cedict_file, sep='\t')
     cfdict_df = pandas.read_csv(csv_cfdict_file, sep='\t')
+    radical_meaning = pandas.read_csv(radical_meaning, sep=',')
     charfreq_df = pandas.read_csv(chinese_charfreq_file, sep=',')
     hsk2_0_wordlist_df = pandas.read_csv(
         hsk2_0_wordlist_file, sep='\t', dtype={'hsk2.0': str}
@@ -88,12 +95,29 @@ def merge_to_csv(csv_cedict_file, csv_cfdict_file, chinese_charfreq_file,
         on='simplified', how='left'
     )
 
+    cxdict_freq_hsk_df = pandas.merge(
+        cxdict_freq_hsk_df,
+        radical_meaning[
+            [
+                'simplified',
+                'pinyin',
+                'is_radical',
+            ]
+        ],
+        on=['pinyin', 'simplified'], how='left'
+    )
+
+    cxdict_freq_hsk_df['is_radical'] = False
+
     cxdict_freq_hsk_df = cxdict_freq_hsk_df.sort_values(
         by=["cumulative_frequency_in_percentile"], ascending=True
     )
     cxdict_freq_hsk_df = cxdict_freq_hsk_df.drop_duplicates(
         subset=['simplified', 'translation_en-US'], keep='last'
     )
+
+    cxdict_freq_hsk_df = pandas.concat([radical_meaning, cxdict_freq_hsk_df])
+
     cxdict_freq_hsk_df.to_csv(MERGE_FILEPATH, index=False)
 
 
@@ -102,34 +126,43 @@ if __name__ == '__main__':
         description='Process hsk data files to merge them.'
     )
     parser.add_argument(
-        '-ce',
-        '--csv_cedict_file', nargs='?',
+        'csv_cedict_file', nargs='?',
         help='Path to csv_cedict_file file.',
-        default="./revised/cedict_ts.csv",
+        default=os.path.join(SCRIPT_PATH, "revised/cedict_ts.csv"),
     )
     parser.add_argument(
-        '-cf',
-        '--csv_cfdict_file', nargs='?',
+        'csv_cfdict_file', nargs='?',
         help='Path to csv_cfdict_file file.',
-        default="./revised/cfdict_ts.csv",
+        default=os.path.join(SCRIPT_PATH, "revised/cfdict_ts.csv"),
     )
     parser.add_argument(
-        '-cfrq',
-        '--chinese_charfreq', nargs='?',
+        'chinese_charfreq', nargs='?',
         help='Path to chinese_charfreq file.',
-        default="./originals/chinese_charfreq_simpl_trad.csv",
+        default=os.path.join(
+            SCRIPT_PATH,
+            "originals/chinese_charfreq_simpl_trad.csv"
+        ),
     )
     parser.add_argument(
-        '-hsk3wl',
-        '--hsk3_0_wordlist_file', nargs='?',
+        'hsk3_0_wordlist_file', nargs='?',
         help='Path to hsk wordlist words directory.',
-        default="./revised/hsk3_0_wordlist.csv",
+        default=os.path.join(SCRIPT_PATH, "revised/hsk3_0_wordlist.csv"),
     )
     parser.add_argument(
-        '-hsk2wl',
-        '--hsk2_0_wordlist_file', nargs='?',
+        'hsk2_0_wordlist_file', nargs='?',
         help='Path to hsk wordlist words directory.',
-        default="./originals/hsk2_0_wordlist.csv",
+        default=os.path.join(
+            SCRIPT_PATH,
+            "originals/hsk2_0_wordlist.csv"
+        ),
+    )
+    parser.add_argument(
+        'csv_radical_meaning', nargs='?',
+        help='Path to radical with meaning file.',
+        default=os.path.join(
+            SCRIPT_PATH,
+            "originals/radicalWithMeaning.csv"
+        ),
     )
 
     args = parser.parse_args()
@@ -138,11 +171,13 @@ if __name__ == '__main__':
     chinese_charfreq_file = args.chinese_charfreq
     hsk3_0_wordlist_file = args.hsk3_0_wordlist_file
     hsk2_0_wordlist_file = args.hsk2_0_wordlist_file
+    csv_radical_meaning = args.csv_radical_meaning
 
     merge_to_csv(
         csv_cedict_file,
         csv_cfdict_file,
         chinese_charfreq_file,
         hsk2_0_wordlist_file,
-        hsk3_0_wordlist_file
+        hsk3_0_wordlist_file,
+        csv_radical_meaning
     )

@@ -1,0 +1,5 @@
+https://raw.githubusercontent.com/gigacool/hanyu-shuiping-kaoshi/master/hsk.csv
+https://www.mdbg.net/chinese/dictionary?page=cedict
+https://lingua.mtsu.edu/chinese-computing/
+https://github.com/elkmovie/hsk30
+https://github.com/infinyte7/HSK-3.0-words-list
